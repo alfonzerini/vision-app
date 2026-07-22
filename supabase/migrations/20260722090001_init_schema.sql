@@ -14,8 +14,12 @@
 -- ============================================================================
 
 -- Postgres extensions ---------------------------------------------------------
-create extension if not exists "pgcrypto";   -- gen_random_uuid()
-create extension if not exists "postgis";    -- geography type for "near me" search
+-- PostGIS powers radius ("cleaners near me") searches. On Supabase, extensions
+-- live in the `extensions` schema, so we add it to the search_path — that way
+-- the `geography` type and its GiST index operators resolve correctly.
+-- gen_random_uuid() is built into Postgres 13+, so pgcrypto is not required.
+create extension if not exists postgis with schema extensions;
+set search_path = public, extensions;
 
 -- ============================================================================
 -- ENUM TYPES
