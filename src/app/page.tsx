@@ -1,65 +1,126 @@
 import Image from "next/image";
+import Link from "next/link";
+import { BRAND } from "@/lib/config";
+
+const steps = [
+  {
+    n: 1,
+    title: "Post your job",
+    body: "Add your address, tell us what needs cleaning, and snap a couple of photos. Takes two minutes.",
+  },
+  {
+    n: 2,
+    title: "Compare quotes",
+    body: "Trusted local cleaners send you prices. Compare ratings, reviews and response times — then pick one.",
+  },
+  {
+    n: 3,
+    title: "Relax — it's done",
+    body: "Pay securely in the app. Your money is held safely and only released once the work is finished.",
+  },
+];
+
+const trust = [
+  {
+    title: "Secure escrow payments",
+    body: "Your payment is held safely and only released when the job is done.",
+  },
+  {
+    title: "Verified, insured cleaners",
+    body: "We check insurance and ID so you can book with confidence.",
+  },
+  {
+    title: "Real ratings & reviews",
+    body: "Every job is reviewed by both sides, so quality stays high.",
+  },
+];
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <main className="flex flex-col">
+      {/* ---------------------------------------------------------------- Hero */}
+      <section className="bg-gradient-to-b from-brand-light to-background">
+        <div className="mx-auto flex max-w-5xl flex-col items-center gap-8 px-6 py-16 text-center sm:py-24">
+          <Image
+            src="/logo.png"
+            alt="Vision logo"
+            width={112}
+            height={112}
+            priority
+            className="h-24 w-24 rounded-2xl shadow-lg sm:h-28 sm:w-28"
+          />
+          <div className="space-y-4">
+            <h1 className="text-4xl font-extrabold tracking-tight sm:text-6xl">
+              {BRAND.tagline}
+            </h1>
+            <p className="mx-auto max-w-2xl text-lg text-muted sm:text-xl">
+              {BRAND.description}
+            </p>
+          </div>
+
+          {/* Two clear entry points */}
+          <div className="flex w-full max-w-md flex-col gap-3 sm:flex-row">
+            <Link
+              href="/signup?role=customer"
+              className="flex-1 rounded-xl bg-brand px-6 py-4 text-lg font-semibold text-white shadow-sm transition-colors hover:bg-brand-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+              Get my windows cleaned
+            </Link>
+            <Link
+              href="/signup?role=cleaner"
+              className="flex-1 rounded-xl border-2 border-brand bg-background px-6 py-4 text-lg font-semibold text-brand transition-colors hover:bg-brand-light focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
             >
-              Learning
-            </a>{" "}
-            center.
+              I&apos;m a window cleaner
+            </Link>
+          </div>
+          <p className="text-sm text-muted">
+            Already have an account?{" "}
+            <Link href="/login" className="font-semibold text-brand underline">
+              Log in
+            </Link>
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </section>
+
+      {/* --------------------------------------------------------- How it works */}
+      <section className="mx-auto w-full max-w-5xl px-6 py-16">
+        <h2 className="text-center text-3xl font-bold">How Vision works</h2>
+        <div className="mt-10 grid gap-6 sm:grid-cols-3">
+          {steps.map((s) => (
+            <div
+              key={s.n}
+              className="rounded-2xl border border-border bg-card p-6 text-left shadow-sm"
+            >
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-accent text-lg font-bold text-slate-900">
+                {s.n}
+              </div>
+              <h3 className="mt-4 text-xl font-semibold">{s.title}</h3>
+              <p className="mt-2 text-muted">{s.body}</p>
+            </div>
+          ))}
         </div>
-      </main>
-    </div>
+      </section>
+
+      {/* ------------------------------------------------------------- Trust row */}
+      <section className="bg-brand-light">
+        <div className="mx-auto grid w-full max-w-5xl gap-6 px-6 py-16 sm:grid-cols-3">
+          {trust.map((t) => (
+            <div key={t.title}>
+              <h3 className="text-lg font-semibold text-brand-dark">
+                {t.title}
+              </h3>
+              <p className="mt-2 text-muted">{t.body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ---------------------------------------------------------------- Footer */}
+      <footer className="mx-auto w-full max-w-5xl px-6 py-10 text-center text-sm text-muted">
+        <p>
+          © {new Date().getFullYear()} {BRAND.name}. Made in the UK.
+        </p>
+      </footer>
+    </main>
   );
 }
