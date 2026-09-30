@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import { requireRole } from "@/lib/auth";
-import { DashboardShell, FeatureCard } from "@/components/dashboard-shell";
+import {
+  DashboardShell,
+  FeatureCard,
+  FeatureLink,
+} from "@/components/dashboard-shell";
 
 export const metadata: Metadata = { title: "Cleaner dashboard" };
 
@@ -17,11 +21,24 @@ export default async function CleanerDashboard() {
       </p>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2">
-        <FeatureCard title="Jobs near me" body="Browse open jobs in your coverage area. (Coming next.)" />
-        <FeatureCard title="My quotes" body="See the quotes you've sent and their status." />
+        <FeatureLink
+          href="/cleaner/jobs"
+          title="Jobs near me"
+          body="Browse open jobs in your coverage area."
+          primary
+        />
+        <FeatureLink
+          href="/cleaner/quotes"
+          title="My quotes"
+          body="See the quotes you've sent and their status."
+        />
+        <FeatureLink
+          href="/cleaner/coverage"
+          title="My profile & coverage"
+          body="Business details, base location & how far you travel."
+        />
         <FeatureCard title="My schedule" body="Your upcoming assigned jobs." />
         <FeatureCard title="Earnings" body="Track payments and payouts." />
-        <FeatureCard title="My profile" body="Business details, insurance, coverage & services." />
         <FeatureCard title="Get verified" body="Upload your insurance and ID to start receiving jobs." />
       </div>
     </DashboardShell>

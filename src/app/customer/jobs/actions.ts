@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
+import { geocodePostcode } from "@/lib/geocode";
 
 export interface JobFormState {
   error?: string;
@@ -75,6 +76,8 @@ export async function createJob(
   // 1. Resolve the property: use the chosen saved one, or create a new one.
   let propertyId = d.property_id || "";
   if (!propertyId) {
+    // Best-effort geocode so the job can appear in cleaners' "near me" search.
+    const geo = await geocodePostcode(d.postcode ?? "");
     const { data: prop, error: propErr } = await supabase
       .from("properties")
       .insert({
@@ -84,6 +87,8 @@ export async function createJob(
         city: d.city || null,
         postcode: d.postcode,
         access_notes: d.property_access_notes || null,
+        latitude: geo?.latitude ?? null,
+        longitude: geo?.longitude ?? null,
       })
       .select("id")
       .single();
@@ -132,4 +137,23 @@ export async function createJob(
 
   revalidatePath("/customer/jobs");
   redirect(`/customer/jobs/${job.id}`);
+}
+
+/**
+ * Customer accepts a cleaner's quote. Delegates to the accept_quote DB function
+ * which atomically assigns the cleaner, rejects the other quotes and notifies.
+ */
+export async function acceptQuote(formData: FormData) {
+  await requireRole("customer");
+  const quoteId = String(formData.get("quote_id") ?? "");
+  const jobId = String(formData.get("job_id") ?? "");
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("accept_quote", { p_quote_id: quoteId });
+
+  if (error) {
+    redirect(`/customer/jobs/${jobId}?error=accept`);
+  }
+  revalidatePath(`/customer/jobs/${jobId}`);
+  redirect(`/customer/jobs/${jobId}?accepted=1`);
 }

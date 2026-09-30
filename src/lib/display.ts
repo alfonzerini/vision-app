@@ -1,5 +1,27 @@
 /** Presentation helpers shared across the UI. */
-import type { CleanType, JobStatus } from "@/lib/types";
+import type { CleanType, JobStatus, QuoteStatus } from "@/lib/types";
+
+export const METRES_PER_MILE = 1609.344;
+export const milesToMetres = (mi: number) => Math.round(mi * METRES_PER_MILE);
+export const metresToMiles = (m: number) => m / METRES_PER_MILE;
+
+/** Metres → "0.4 miles" / "3.2 miles". */
+export function formatDistance(metres: number | null): string {
+  if (metres == null) return "—";
+  const miles = metresToMiles(metres);
+  return `${miles.toFixed(miles < 10 ? 1 : 0)} mi`;
+}
+
+export const QUOTE_STATUS: Record<
+  QuoteStatus,
+  { label: string; className: string }
+> = {
+  pending: { label: "Awaiting decision", className: "bg-amber-100 text-amber-700" },
+  accepted: { label: "Accepted", className: "bg-emerald-100 text-emerald-700" },
+  rejected: { label: "Not chosen", className: "bg-slate-100 text-slate-500" },
+  withdrawn: { label: "Withdrawn", className: "bg-slate-100 text-slate-500" },
+  expired: { label: "Expired", className: "bg-slate-100 text-slate-500" },
+};
 
 export const JOB_STATUS: Record<
   JobStatus,

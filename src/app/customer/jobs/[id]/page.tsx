@@ -4,8 +4,15 @@ import type { Metadata } from "next";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { DashboardShell } from "@/components/dashboard-shell";
-import { JOB_STATUS, CLEAN_TYPE_LABEL, formatDate } from "@/lib/display";
-import type { CleanType, JobStatus } from "@/lib/types";
+import {
+  JOB_STATUS,
+  QUOTE_STATUS,
+  CLEAN_TYPE_LABEL,
+  formatDate,
+  formatMoney,
+} from "@/lib/display";
+import type { CleanType, JobStatus, QuoteStatus } from "@/lib/types";
+import { acceptQuote } from "../actions";
 
 export const metadata: Metadata = { title: "Job details" };
 
@@ -31,6 +38,19 @@ interface JobDetail {
   } | null;
 }
 
+interface QuoteView {
+  quote_id: string;
+  amount_pence: number;
+  message: string | null;
+  status: QuoteStatus;
+  created_at: string;
+  cleaner_id: string;
+  business_name: string;
+  avg_rating: number;
+  rating_count: number;
+  completed_jobs: number;
+}
+
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex justify-between gap-4 border-b border-border py-2.5 last:border-0">
@@ -40,13 +60,27 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
   );
 }
 
+function Rating({ avg, count }: { avg: number; count: number }) {
+  if (!count) {
+    return <span className="text-xs font-medium text-muted">New cleaner</span>;
+  }
+  return (
+    <span className="text-xs font-medium text-muted">
+      ★ {avg.toFixed(1)} ({count})
+    </span>
+  );
+}
+
 export default async function JobDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ accepted?: string; error?: string }>;
 }) {
   const user = await requireRole("customer");
   const { id } = await params;
+  const { accepted, error } = await searchParams;
   const supabase = await createClient();
 
   const { data } = await supabase
@@ -60,6 +94,11 @@ export default async function JobDetailPage({
   if (!data) notFound();
   const job = data as unknown as JobDetail;
   const status = JOB_STATUS[job.status];
+
+  const { data: quotesData } = await supabase.rpc("quotes_for_job", {
+    p_job_id: id,
+  });
+  const quotes = (quotesData as QuoteView[] | null) ?? [];
 
   const extras = [
     job.has_conservatory && "Conservatory",
@@ -89,6 +128,18 @@ export default async function JobDetailPage({
         </span>
       </div>
       <p className="mt-1 text-sm text-muted">Posted {formatDate(job.created_at)}</p>
+
+      {accepted && (
+        <p className="mt-4 rounded-lg bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+          Quote accepted — your cleaner is booked. We&apos;ve let them know.
+        </p>
+      )}
+      {error === "accept" && (
+        <p className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+          Sorry, we couldn&apos;t accept that quote — it may no longer be
+          available. Please try another.
+        </p>
+      )}
 
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
         {/* Job details */}
@@ -136,12 +187,68 @@ export default async function JobDetailPage({
 
         {/* Quotes */}
         <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-          <h2 className="text-lg font-bold">Quotes</h2>
-          <div className="mt-4 rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted">
-            {job.status === "open"
-              ? "No quotes yet. Local cleaners will send prices soon — you'll be notified."
-              : "Quotes will appear here."}
-          </div>
+          <h2 className="text-lg font-bold">
+            Quotes {quotes.length > 0 && `(${quotes.length})`}
+          </h2>
+
+          {quotes.length === 0 ? (
+            <div className="mt-4 rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted">
+              {job.status === "open"
+                ? "No quotes yet. Local cleaners will send prices soon — you'll be notified."
+                : "No quotes were received."}
+            </div>
+          ) : (
+            <ul className="mt-4 space-y-3">
+              {quotes.map((q) => {
+                const qs = QUOTE_STATUS[q.status];
+                const isAccepted = q.status === "accepted";
+                return (
+                  <li
+                    key={q.quote_id}
+                    className={`rounded-xl border p-4 ${
+                      isAccepted
+                        ? "border-emerald-300 bg-emerald-50"
+                        : "border-border"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-semibold">{q.business_name}</p>
+                        <Rating avg={q.avg_rating} count={q.rating_count} />
+                      </div>
+                      <div className="text-right">
+                        <p className="text-lg font-bold">
+                          {formatMoney(q.amount_pence)}
+                        </p>
+                        {job.status !== "open" && (
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-xs font-semibold ${qs.className}`}
+                          >
+                            {qs.label}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {q.message && (
+                      <p className="mt-2 text-sm text-muted">{q.message}</p>
+                    )}
+                    {job.status === "open" && q.status === "pending" && (
+                      <form action={acceptQuote} className="mt-3">
+                        <input type="hidden" name="quote_id" value={q.quote_id} />
+                        <input type="hidden" name="job_id" value={job.id} />
+                        <button
+                          type="submit"
+                          className="w-full rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-dark"
+                        >
+                          Accept this quote
+                        </button>
+                      </form>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </section>
       </div>
     </DashboardShell>
