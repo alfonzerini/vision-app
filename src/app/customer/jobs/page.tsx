@@ -26,7 +26,10 @@ export default async function MyJobsPage() {
   const { data } = await supabase
     .from("jobs")
     .select(
-      "id, status, clean_type, window_count, preferred_date, created_at, property:properties(address_line1, postcode), quotes(count)",
+      // Disambiguate: there are two FKs between jobs and quotes (all quotes on
+      // a job, and the accepted quote). We want the count of all quotes on the
+      // job, via quotes.job_id.
+      "id, status, clean_type, window_count, preferred_date, created_at, property:properties(address_line1, postcode), quotes!quotes_job_id_fkey(count)",
     )
     .order("created_at", { ascending: false });
 
