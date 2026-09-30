@@ -69,3 +69,30 @@ export function FeatureCard({
     </div>
   );
 }
+
+/** A tappable card that links somewhere — for live features. */
+export function FeatureLink({
+  href,
+  title,
+  body,
+  primary,
+}: {
+  href: string;
+  title: string;
+  body: string;
+  primary?: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`block rounded-2xl border p-5 shadow-sm transition-colors ${
+        primary
+          ? "border-brand bg-brand-light hover:bg-brand-light/70"
+          : "border-border bg-card hover:border-brand"
+      }`}
+    >
+      <h3 className="font-semibold">{title}</h3>
+      <p className="mt-1 text-sm text-muted">{body}</p>
+    </Link>
+  );
+}
