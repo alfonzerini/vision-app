@@ -180,8 +180,10 @@ begin
     raise exception 'This job is no longer open for quotes';
   end if;
 
-  select coalesce((value)::int, 72) into v_validity
+  -- platform_settings.value is jsonb; extract as text before casting to int.
+  select (value #>> '{}')::int into v_validity
   from platform_settings where key = 'quote_validity_hours';
+  v_validity := coalesce(v_validity, 72);
 
   -- Update an existing pending quote, or insert a new one.
   select id into v_quote_id
