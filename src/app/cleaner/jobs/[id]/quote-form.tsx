@@ -24,7 +24,7 @@ export function QuoteForm({
       <FormError message={state.error} />
       {state.success && (
         <p className="rounded-lg bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
-          {hasExisting ? "Your quote has been updated." : "Quote sent! The customer has been notified."}
+          Quote sent — the customer has been notified.
         </p>
       )}
 
