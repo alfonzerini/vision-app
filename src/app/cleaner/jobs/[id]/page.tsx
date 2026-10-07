@@ -184,7 +184,11 @@ export default async function CleanerJobDetail({
                 </h3>
                 <p className="mt-1 mb-3 text-sm text-muted">
                   {job.status === "completed"
-                    ? "The customer has confirmed this job is done."
+                    ? `The customer confirmed the job — you've earned ${
+                        job.my_quote_amount_pence != null
+                          ? formatMoney(job.my_quote_amount_pence)
+                          : "your quoted amount"
+                      }.`
                     : job.status === "awaiting_review"
                       ? "Waiting for the customer to confirm — they've been notified."
                       : "Upload your after-photos and mark the job complete when you're on site."}

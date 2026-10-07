@@ -32,7 +32,7 @@ export const JOB_STATUS: Record<
   assigned: { label: "Booked", className: "bg-emerald-100 text-emerald-700" },
   in_progress: { label: "In progress", className: "bg-amber-100 text-amber-700" },
   awaiting_review: { label: "Awaiting your review", className: "bg-amber-100 text-amber-700" },
-  completed: { label: "Completed", className: "bg-emerald-100 text-emerald-700" },
+  completed: { label: "Completed ✅", className: "bg-emerald-100 text-emerald-700" },
   disputed: { label: "Disputed", className: "bg-red-100 text-red-700" },
   cancelled: { label: "Cancelled", className: "bg-slate-100 text-slate-500" },
 };

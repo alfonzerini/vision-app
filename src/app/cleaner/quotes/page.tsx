@@ -5,11 +5,12 @@ import { createClient } from "@/lib/supabase/server";
 import { DashboardShell } from "@/components/dashboard-shell";
 import {
   CLEAN_TYPE_LABEL,
+  JOB_STATUS,
   QUOTE_STATUS,
   formatDate,
   formatMoney,
 } from "@/lib/display";
-import type { CleanType, QuoteStatus } from "@/lib/types";
+import type { CleanType, JobStatus, QuoteStatus } from "@/lib/types";
 
 export const metadata: Metadata = { title: "My quotes" };
 
@@ -18,7 +19,12 @@ interface QuoteRow {
   amount_pence: number;
   status: QuoteStatus;
   created_at: string;
-  job: { id: string; clean_type: CleanType; window_count: number | null } | null;
+  job: {
+    id: string;
+    clean_type: CleanType;
+    window_count: number | null;
+    status: JobStatus;
+  } | null;
 }
 
 export default async function MyQuotesPage() {
@@ -28,7 +34,7 @@ export default async function MyQuotesPage() {
   const { data } = await supabase
     .from("quotes")
     .select(
-      "id, amount_pence, status, created_at, job:jobs!quotes_job_id_fkey(id, clean_type, window_count)",
+      "id, amount_pence, status, created_at, job:jobs!quotes_job_id_fkey(id, clean_type, window_count, status)",
     )
     .order("created_at", { ascending: false });
 
@@ -51,7 +57,13 @@ export default async function MyQuotesPage() {
       ) : (
         <ul className="mt-6 space-y-3">
           {quotes.map((q) => {
-            const s = QUOTE_STATUS[q.status];
+            // For the winning (accepted) quote, show the job's progress
+            // (Booked → Awaiting confirmation → Completed ✅); otherwise show
+            // the quote's own status (pending / not chosen).
+            const s =
+              q.status === "accepted" && q.job
+                ? JOB_STATUS[q.job.status]
+                : QUOTE_STATUS[q.status];
             return (
               <li key={q.id}>
                 <Link
@@ -64,7 +76,8 @@ export default async function MyQuotesPage() {
                       {q.job?.window_count ? ` · ${q.job.window_count} windows` : ""}
                     </p>
                     <p className="mt-0.5 text-sm text-muted">
-                      Quoted {formatMoney(q.amount_pence)} · {formatDate(q.created_at)}
+                      {q.status === "accepted" ? "Agreed" : "Quoted"}{" "}
+                      {formatMoney(q.amount_pence)} · {formatDate(q.created_at)}
                     </p>
                   </div>
                   <span className={`rounded-full px-3 py-1 text-xs font-semibold ${s.className}`}>
