@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { Metadata } from "next";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -29,10 +28,7 @@ export default async function CoveragePage() {
 
   return (
     <DashboardShell user={user}>
-      <Link href="/cleaner" className="text-sm font-medium text-brand hover:underline">
-        ← Back to dashboard
-      </Link>
-      <h1 className="mt-2 text-2xl font-bold">Your profile &amp; coverage</h1>
+      <h1 className="text-2xl font-bold">Your profile &amp; coverage</h1>
       <p className="mt-1 text-muted">
         Tell us about your business and where you work, so we can show you the
         right jobs.

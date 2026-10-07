@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { requireRole } from "@/lib/auth";
@@ -119,11 +118,7 @@ export default async function CleanerJobDetail({
 
   return (
     <DashboardShell user={user}>
-      <Link href="/cleaner/jobs" className="text-sm font-medium text-brand hover:underline">
-        ← Jobs near me
-      </Link>
-
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">
           {CLEAN_TYPE_LABEL[job.clean_type]}
           {job.city ? ` · ${job.city}` : job.postcode_area ? ` · ${job.postcode_area}` : ""}

@@ -1,5 +1,4 @@
 import Image from "next/image";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { requireRole } from "@/lib/auth";
@@ -137,14 +136,7 @@ export default async function JobDetailPage({
 
   return (
     <DashboardShell user={user}>
-      <Link
-        href="/customer/jobs"
-        className="text-sm font-medium text-brand hover:underline"
-      >
-        ← All my jobs
-      </Link>
-
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">
           {job.property?.address_line1}
           {job.property?.postcode ? `, ${job.property.postcode}` : ""}

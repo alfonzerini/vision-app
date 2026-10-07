@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { BRAND } from "@/lib/config";
+import { getSessionUser, roleHome } from "@/lib/auth";
 
 const steps = [
   {
@@ -35,7 +37,11 @@ const trust = [
   },
 ];
 
-export default function Home() {
+export default async function Home() {
+  // Logged-in users shouldn't see the marketing/login page — send them home.
+  const user = await getSessionUser();
+  if (user) redirect(roleHome(user.role));
+
   return (
     <main className="flex flex-col">
       {/* ---------------------------------------------------------------- Hero */}

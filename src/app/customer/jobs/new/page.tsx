@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { Metadata } from "next";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -18,10 +17,7 @@ export default async function NewJobPage() {
 
   return (
     <DashboardShell user={user}>
-      <Link href="/customer" className="text-sm font-medium text-brand hover:underline">
-        ← Back to dashboard
-      </Link>
-      <h1 className="mt-2 text-2xl font-bold">Post a window cleaning job</h1>
+      <h1 className="text-2xl font-bold">Post a window cleaning job</h1>
       <p className="mt-1 text-muted">
         Fill this in and local cleaners will send you quotes. It only takes a
         minute.
