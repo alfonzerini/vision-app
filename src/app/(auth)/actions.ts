@@ -5,7 +5,6 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { roleHome } from "@/lib/auth";
 import { ROUTES } from "@/lib/config";
-import { supabaseConfigured } from "@/lib/supabase/env";
 
 export interface AuthState {
   error?: string;
@@ -43,18 +42,10 @@ export async function login(
     return { error: parsed.error.issues[0]?.message ?? "Invalid details." };
   }
 
-  // TEMPORARY DIAGNOSTIC — surfaces the real failure cause while we debug the
-  // production deploy. Revert to the friendly generic message afterwards.
-  if (!supabaseConfigured) {
-    return {
-      error:
-        "Setup check: the app can't find its database settings (NEXT_PUBLIC_SUPABASE_URL / ANON_KEY) in this environment.",
-    };
-  }
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
   if (error) {
-    return { error: `Login problem: ${error.message}` };
+    return { error: "That email or password isn't right. Please try again." };
   }
 
   // Send the user to the dashboard that matches their role.
