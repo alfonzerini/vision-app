@@ -52,3 +52,39 @@ export async function submitQuote(
   revalidatePath("/cleaner/jobs");
   return { success: true };
 }
+
+export interface ActionResult {
+  error?: string;
+}
+
+/** Cleaner marks an assigned job as started (in progress). */
+export async function startJob(jobId: string): Promise<ActionResult> {
+  await requireRole("cleaner");
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("start_job", { p_job_id: jobId });
+  if (error) return { error: error.message };
+  revalidatePath(`/cleaner/jobs/${jobId}`);
+  return {};
+}
+
+/**
+ * Cleaner submits completion. The database function verifies the minimum
+ * number of after-photos and that the given GPS position is within the allowed
+ * radius of the property before moving the job to "awaiting_review".
+ */
+export async function completeJob(
+  jobId: string,
+  lat: number,
+  lng: number,
+): Promise<ActionResult> {
+  await requireRole("cleaner");
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("complete_job", {
+    p_job_id: jobId,
+    p_lat: lat,
+    p_lng: lng,
+  });
+  if (error) return { error: error.message };
+  revalidatePath(`/cleaner/jobs/${jobId}`);
+  return {};
+}

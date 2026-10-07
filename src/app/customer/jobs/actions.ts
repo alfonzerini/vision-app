@@ -157,3 +157,20 @@ export async function acceptQuote(formData: FormData) {
   revalidatePath(`/customer/jobs/${jobId}`);
   redirect(`/customer/jobs/${jobId}?accepted=1`);
 }
+
+/** Customer confirms the cleaner's completed work -> job completed. */
+export async function confirmCompletion(formData: FormData) {
+  await requireRole("customer");
+  const jobId = String(formData.get("job_id") ?? "");
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("confirm_completion", {
+    p_job_id: jobId,
+  });
+
+  if (error) {
+    redirect(`/customer/jobs/${jobId}?error=confirm`);
+  }
+  revalidatePath(`/customer/jobs/${jobId}`);
+  redirect(`/customer/jobs/${jobId}?confirmed=1`);
+}

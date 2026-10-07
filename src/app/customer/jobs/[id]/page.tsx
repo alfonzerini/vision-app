@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -12,7 +13,7 @@ import {
   formatMoney,
 } from "@/lib/display";
 import type { CleanType, JobStatus, QuoteStatus } from "@/lib/types";
-import { acceptQuote } from "../actions";
+import { acceptQuote, confirmCompletion } from "../actions";
 
 export const metadata: Metadata = { title: "Job details" };
 
@@ -76,11 +77,15 @@ export default async function JobDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ accepted?: string; error?: string }>;
+  searchParams: Promise<{
+    accepted?: string;
+    error?: string;
+    confirmed?: string;
+  }>;
 }) {
   const user = await requireRole("customer");
   const { id } = await params;
-  const { accepted, error } = await searchParams;
+  const { accepted, error, confirmed } = await searchParams;
   const supabase = await createClient();
 
   const { data } = await supabase
@@ -99,6 +104,29 @@ export default async function JobDetailPage({
     p_job_id: id,
   });
   const quotes = (quotesData as QuoteView[] | null) ?? [];
+
+  // Load completion photos once the cleaner has submitted them.
+  let photos: { id: string; url: string }[] = [];
+  if (job.status === "awaiting_review" || job.status === "completed") {
+    const { data: ev } = await supabase
+      .from("completion_evidence")
+      .select("id, file_path")
+      .eq("job_id", id)
+      .eq("kind", "after")
+      .order("created_at");
+    const rows = (ev as { id: string; file_path: string }[] | null) ?? [];
+    if (rows.length > 0) {
+      const { data: signed } = await supabase.storage
+        .from("job-media")
+        .createSignedUrls(
+          rows.map((r) => r.file_path),
+          3600,
+        );
+      photos = rows
+        .map((r, i) => ({ id: r.id, url: signed?.[i]?.signedUrl ?? "" }))
+        .filter((p) => p.url);
+    }
+  }
 
   const extras = [
     job.has_conservatory && "Conservatory",
@@ -138,6 +166,16 @@ export default async function JobDetailPage({
         <p className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
           Sorry, we couldn&apos;t accept that quote — it may no longer be
           available. Please try another.
+        </p>
+      )}
+      {confirmed && (
+        <p className="mt-4 rounded-lg bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+          Thanks — you&apos;ve confirmed the job is complete.
+        </p>
+      )}
+      {error === "confirm" && (
+        <p className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+          Sorry, we couldn&apos;t confirm that just now. Please try again.
         </p>
       )}
 
@@ -251,6 +289,55 @@ export default async function JobDetailPage({
           )}
         </section>
       </div>
+
+      {(job.status === "awaiting_review" || job.status === "completed") && (
+        <section className="mt-6 rounded-2xl border border-border bg-card p-6 shadow-sm">
+          <h2 className="text-lg font-bold">
+            {job.status === "awaiting_review"
+              ? "Your cleaner has finished"
+              : "Completed work"}
+          </h2>
+          <p className="mt-1 text-sm text-muted">
+            {job.status === "awaiting_review"
+              ? "Please review the after-photos and confirm the job is done."
+              : "This job is complete."}
+          </p>
+
+          {photos.length > 0 ? (
+            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {photos.map((p) => (
+                <div
+                  key={p.id}
+                  className="relative aspect-square overflow-hidden rounded-lg border border-border"
+                >
+                  <Image
+                    src={p.url}
+                    alt="After photo"
+                    fill
+                    sizes="200px"
+                    className="object-cover"
+                    unoptimized
+                  />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-4 text-sm text-muted">No photos available.</p>
+          )}
+
+          {job.status === "awaiting_review" && (
+            <form action={confirmCompletion} className="mt-5">
+              <input type="hidden" name="job_id" value={job.id} />
+              <button
+                type="submit"
+                className="rounded-xl bg-brand px-6 py-3 font-semibold text-white transition-colors hover:bg-brand-dark"
+              >
+                Confirm the job is done
+              </button>
+            </form>
+          )}
+        </section>
+      )}
     </DashboardShell>
   );
 }

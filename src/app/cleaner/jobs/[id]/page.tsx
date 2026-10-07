@@ -12,7 +12,9 @@ import {
   formatMoney,
 } from "@/lib/display";
 import type { CleanType, JobStatus, QuoteStatus } from "@/lib/types";
+import { SETTINGS_DEFAULTS } from "@/lib/config";
 import { QuoteForm } from "./quote-form";
+import { CompletionPanel } from "./completion-panel";
 
 export const metadata: Metadata = { title: "Job details" };
 
@@ -91,6 +93,30 @@ export default async function CleanerJobDetail({
       (jobRow as { property: JobAddress | null } | null)?.property ?? null;
   }
 
+  // Load any completion photos (private bucket → short-lived signed URLs).
+  let photos: { id: string; url: string }[] = [];
+  if (iWon) {
+    const { data: ev } = await supabase
+      .from("completion_evidence")
+      .select("id, file_path")
+      .eq("job_id", id)
+      .eq("kind", "after")
+      .order("created_at");
+    const rows = (ev as { id: string; file_path: string }[] | null) ?? [];
+    if (rows.length > 0) {
+      const { data: signed } = await supabase.storage
+        .from("job-media")
+        .createSignedUrls(
+          rows.map((r) => r.file_path),
+          3600,
+        );
+      photos = rows.map((r, i) => ({
+        id: r.id,
+        url: signed?.[i]?.signedUrl ?? "",
+      })).filter((p) => p.url);
+    }
+  }
+
   return (
     <DashboardShell user={user}>
       <Link href="/cleaner/jobs" className="text-sm font-medium text-brand hover:underline">
@@ -137,7 +163,6 @@ export default async function CleanerJobDetail({
               <h2 className="text-lg font-bold text-emerald-700">You won this job! 🎉</h2>
               <p className="mt-1 text-sm text-muted">
                 Agreed price {job.my_quote_amount_pence != null ? formatMoney(job.my_quote_amount_pence) : ""}.
-                Here are the full details:
               </p>
               <div className="mt-4 text-sm">
                 <p className="font-semibold">Address</p>
@@ -153,6 +178,30 @@ export default async function CleanerJobDetail({
                   <p className="mt-1 text-muted">{address.access_notes}</p>
                 </div>
               )}
+
+              <div className="mt-6 border-t border-border pt-5">
+                <h3 className="font-bold">
+                  {job.status === "completed"
+                    ? "Job complete ✅"
+                    : job.status === "awaiting_review"
+                      ? "Submitted for review"
+                      : "Finish the job"}
+                </h3>
+                <p className="mt-1 mb-3 text-sm text-muted">
+                  {job.status === "completed"
+                    ? "The customer has confirmed this job is done."
+                    : job.status === "awaiting_review"
+                      ? "Waiting for the customer to confirm — they've been notified."
+                      : "Upload your after-photos and mark the job complete when you're on site."}
+                </p>
+                <CompletionPanel
+                  jobId={job.id}
+                  cleanerId={user.id}
+                  status={job.status}
+                  initialPhotos={photos}
+                  minPhotos={SETTINGS_DEFAULTS.min_after_photos}
+                />
+              </div>
             </>
           ) : job.status === "open" ? (
             <>
