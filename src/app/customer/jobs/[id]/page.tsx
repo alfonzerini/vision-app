@@ -6,6 +6,7 @@ import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { PaymentNotice } from "@/components/payment-notice";
+import { JobChat, type ChatMessage } from "@/components/job-chat";
 import {
   JOB_STATUS,
   QUOTE_STATUS,
@@ -21,6 +22,7 @@ export const metadata: Metadata = { title: "Job details" };
 interface JobDetail {
   id: string;
   status: JobStatus;
+  assigned_cleaner_id: string | null;
   clean_type: CleanType;
   window_count: number | null;
   has_conservatory: boolean;
@@ -93,7 +95,7 @@ export default async function JobDetailPage({
   const { data } = await supabase
     .from("jobs")
     .select(
-      "id, status, clean_type, window_count, has_conservatory, has_skylights, has_solar_panels, has_veranda, preferred_date, preferred_time, access_notes, additional_notes, created_at, property:properties(address_line1, address_line2, city, postcode)",
+      "id, status, assigned_cleaner_id, clean_type, window_count, has_conservatory, has_skylights, has_solar_panels, has_veranda, preferred_date, preferred_time, access_notes, additional_notes, created_at, property:properties(address_line1, address_line2, city, postcode)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -128,6 +130,26 @@ export default async function JobDetailPage({
         .map((r, i) => ({ id: r.id, url: signed?.[i]?.signedUrl ?? "" }))
         .filter((p) => p.url);
     }
+  }
+
+  // Chat — available once a cleaner is assigned.
+  let cleanerName = "your cleaner";
+  let messages: ChatMessage[] = [];
+  if (job.assigned_cleaner_id) {
+    const { data: cp } = await supabase
+      .from("cleaner_profiles")
+      .select("business_name")
+      .eq("profile_id", job.assigned_cleaner_id)
+      .maybeSingle();
+    cleanerName =
+      (cp as { business_name: string | null } | null)?.business_name ??
+      "your cleaner";
+    const { data: msgs } = await supabase
+      .from("messages")
+      .select("id, sender_id, body, created_at")
+      .eq("job_id", id)
+      .order("created_at");
+    messages = (msgs as ChatMessage[] | null) ?? [];
   }
 
   const extras = [
@@ -364,6 +386,22 @@ export default async function JobDetailPage({
             Thanks — you&apos;ve reported a problem with this job. Our team will
             review it and be in touch. Your payment stays on hold in the meantime.
           </p>
+        </section>
+      )}
+
+      {job.assigned_cleaner_id && (
+        <section className="mt-6 rounded-2xl border border-border bg-card p-6 shadow-sm">
+          <h2 className="text-lg font-bold">Messages</h2>
+          <p className="mt-1 mb-4 text-sm text-muted">
+            Chat with {cleanerName} about access, timing and anything else.
+          </p>
+          <JobChat
+            jobId={job.id}
+            currentUserId={user.id}
+            otherPartyId={job.assigned_cleaner_id}
+            otherPartyName={cleanerName}
+            initialMessages={messages}
+          />
         </section>
       )}
     </DashboardShell>

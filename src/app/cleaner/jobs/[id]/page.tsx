@@ -4,6 +4,7 @@ import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { PaymentNotice } from "@/components/payment-notice";
+import { JobChat, type ChatMessage } from "@/components/job-chat";
 import {
   CLEAN_TYPE_LABEL,
   JOB_STATUS,
@@ -79,18 +80,41 @@ export default async function CleanerJobDetail({
     job.has_veranda && "Veranda / porch",
   ].filter(Boolean) as string[];
 
-  // If this cleaner won the job, they may now see the full address.
+  // If this cleaner won the job, they may now see the full address + chat.
   let address: JobAddress | null = null;
+  let customerId: string | null = null;
+  let customerName = "the customer";
+  let messages: ChatMessage[] = [];
   if (iWon) {
     const { data: jobRow } = await supabase
       .from("jobs")
       .select(
-        "access_notes, property:properties(address_line1, address_line2, city, postcode, access_notes)",
+        "customer_id, property:properties(address_line1, address_line2, city, postcode, access_notes)",
       )
       .eq("id", id)
       .maybeSingle();
-    address =
-      (jobRow as { property: JobAddress | null } | null)?.property ?? null;
+    const jr = jobRow as {
+      customer_id: string | null;
+      property: JobAddress | null;
+    } | null;
+    address = jr?.property ?? null;
+    customerId = jr?.customer_id ?? null;
+    if (customerId) {
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", customerId)
+        .maybeSingle();
+      customerName =
+        (prof as { full_name: string | null } | null)?.full_name ??
+        "the customer";
+    }
+    const { data: msgs } = await supabase
+      .from("messages")
+      .select("id, sender_id, body, created_at")
+      .eq("job_id", id)
+      .order("created_at");
+    messages = (msgs as ChatMessage[] | null) ?? [];
   }
 
   // Load any completion photos (private bucket → short-lived signed URLs).
@@ -230,6 +254,22 @@ export default async function CleanerJobDetail({
           )}
         </section>
       </div>
+
+      {iWon && customerId && (
+        <section className="mt-6 rounded-2xl border border-border bg-card p-6 shadow-sm">
+          <h2 className="text-lg font-bold">Messages</h2>
+          <p className="mt-1 mb-4 text-sm text-muted">
+            Chat with {customerName} about access, timing and anything else.
+          </p>
+          <JobChat
+            jobId={job.id}
+            currentUserId={user.id}
+            otherPartyId={customerId}
+            otherPartyName={customerName}
+            initialMessages={messages}
+          />
+        </section>
+      )}
     </DashboardShell>
   );
 }

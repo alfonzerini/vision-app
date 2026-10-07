@@ -37,7 +37,11 @@ export default async function CleanerDashboard() {
           title="My profile & coverage"
           body="Business details, base location & how far you travel."
         />
-        <FeatureCard title="My schedule" body="Your upcoming assigned jobs." />
+        <FeatureLink
+          href="/cleaner/schedule"
+          title="My schedule"
+          body="Your booked jobs in calendar or list view."
+        />
         <FeatureCard title="Earnings" body="Track payments and payouts." />
         <FeatureCard title="Get verified" body="Upload your insurance and ID to start receiving jobs." />
       </div>
