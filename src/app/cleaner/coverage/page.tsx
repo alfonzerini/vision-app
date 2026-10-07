@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { DashboardShell } from "@/components/dashboard-shell";
+import { PaymentNotice } from "@/components/payment-notice";
 import { metresToMiles } from "@/lib/display";
 import { CoverageForm, type CoverageDefaults } from "./coverage-form";
 
@@ -34,7 +35,11 @@ export default async function CoveragePage() {
         right jobs.
       </p>
 
-      <div className="mt-8 max-w-xl">
+      <div className="mt-6 max-w-xl">
+        <PaymentNotice role="cleaner" />
+      </div>
+
+      <div className="mt-6 max-w-xl">
         <CoverageForm defaults={defaults} />
       </div>
     </DashboardShell>

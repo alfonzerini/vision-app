@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { DashboardShell } from "@/components/dashboard-shell";
+import { PaymentNotice } from "@/components/payment-notice";
 import { NewJobForm, type SavedProperty } from "./new-job-form";
 
 export const metadata: Metadata = { title: "Post a job" };
@@ -23,7 +24,11 @@ export default async function NewJobPage() {
         minute.
       </p>
 
-      <div className="mt-8 max-w-2xl">
+      <div className="mt-6 max-w-2xl">
+        <PaymentNotice role="customer" />
+      </div>
+
+      <div className="mt-6 max-w-2xl">
         <NewJobForm properties={(properties as SavedProperty[]) ?? []} />
       </div>
     </DashboardShell>

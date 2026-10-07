@@ -174,3 +174,46 @@ export async function confirmCompletion(formData: FormData) {
   revalidatePath(`/customer/jobs/${jobId}`);
   redirect(`/customer/jobs/${jobId}?confirmed=1`);
 }
+
+export interface DisputeState {
+  error?: string;
+}
+
+const disputeSchema = z.object({
+  job_id: z.string().uuid(),
+  reason: z.enum(["no_show", "poor_quality", "incomplete", "property_damage"]),
+  description: z
+    .string()
+    .trim()
+    .min(10, "Please describe the problem in a little more detail."),
+});
+
+/** Customer reports a problem instead of confirming → job goes to 'disputed'. */
+export async function raiseDispute(
+  _prev: DisputeState,
+  formData: FormData,
+): Promise<DisputeState> {
+  await requireRole("customer");
+
+  const parsed = disputeSchema.safeParse({
+    job_id: formData.get("job_id"),
+    reason: formData.get("reason"),
+    description: formData.get("description"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Please check the form." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("raise_dispute", {
+    p_job_id: parsed.data.job_id,
+    p_reason: parsed.data.reason,
+    p_description: parsed.data.description,
+  });
+  if (error) {
+    return { error: error.message || "Couldn't report the problem. Please try again." };
+  }
+
+  revalidatePath(`/customer/jobs/${parsed.data.job_id}`);
+  redirect(`/customer/jobs/${parsed.data.job_id}?reported=1`);
+}

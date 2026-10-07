@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { DashboardShell } from "@/components/dashboard-shell";
+import { PaymentNotice } from "@/components/payment-notice";
 import {
   CLEAN_TYPE_LABEL,
   JOB_STATUS,
@@ -213,6 +214,9 @@ export default async function CleanerJobDetail({
                   : "Give the customer your price. They'll compare quotes and choose."}
               </p>
               <QuoteForm jobId={job.id} existingAmountPence={job.my_quote_amount_pence} />
+              <div className="mt-4">
+                <PaymentNotice role="cleaner" />
+              </div>
             </>
           ) : (
             <>

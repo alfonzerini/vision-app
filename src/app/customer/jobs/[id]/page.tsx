@@ -1,9 +1,11 @@
 import Image from "next/image";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { DashboardShell } from "@/components/dashboard-shell";
+import { PaymentNotice } from "@/components/payment-notice";
 import {
   JOB_STATUS,
   QUOTE_STATUS,
@@ -80,11 +82,12 @@ export default async function JobDetailPage({
     accepted?: string;
     error?: string;
     confirmed?: string;
+    reported?: string;
   }>;
 }) {
   const user = await requireRole("customer");
   const { id } = await params;
-  const { accepted, error, confirmed } = await searchParams;
+  const { accepted, error, confirmed, reported } = await searchParams;
   const supabase = await createClient();
 
   const { data } = await supabase
@@ -169,6 +172,17 @@ export default async function JobDetailPage({
         <p className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
           Sorry, we couldn&apos;t confirm that just now. Please try again.
         </p>
+      )}
+      {reported && (
+        <p className="mt-4 rounded-lg bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+          Thanks — we&apos;ve received your report and will look into it.
+        </p>
+      )}
+
+      {job.status === "open" && (
+        <div className="mt-6">
+          <PaymentNotice role="customer" />
+        </div>
       )}
 
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
@@ -318,16 +332,38 @@ export default async function JobDetailPage({
           )}
 
           {job.status === "awaiting_review" && (
-            <form action={confirmCompletion} className="mt-5">
-              <input type="hidden" name="job_id" value={job.id} />
-              <button
-                type="submit"
-                className="rounded-xl bg-brand px-6 py-3 font-semibold text-white transition-colors hover:bg-brand-dark"
-              >
-                Confirm the job is done
-              </button>
-            </form>
+            <>
+              <form action={confirmCompletion} className="mt-5">
+                <input type="hidden" name="job_id" value={job.id} />
+                <button
+                  type="submit"
+                  className="rounded-xl bg-brand px-6 py-3 font-semibold text-white transition-colors hover:bg-brand-dark"
+                >
+                  Confirm the job is done
+                </button>
+              </form>
+              <p className="mt-3 text-xs text-muted">
+                Something not right?{" "}
+                <Link
+                  href={`/customer/jobs/${job.id}/dispute`}
+                  className="underline hover:text-foreground"
+                >
+                  Report a problem
+                </Link>{" "}
+                instead.
+              </p>
+            </>
           )}
+        </section>
+      )}
+
+      {job.status === "disputed" && (
+        <section className="mt-6 rounded-2xl border border-amber-300 bg-amber-50 p-6 shadow-sm">
+          <h2 className="text-lg font-bold text-amber-800">Problem reported</h2>
+          <p className="mt-1 text-sm text-amber-800">
+            Thanks — you&apos;ve reported a problem with this job. Our team will
+            review it and be in touch. Your payment stays on hold in the meantime.
+          </p>
         </section>
       )}
     </DashboardShell>
