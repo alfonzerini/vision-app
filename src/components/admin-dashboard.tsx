@@ -143,7 +143,7 @@ export function AdminDashboard({ stats }: { stats: AdminStats }) {
         ) : (
           <div className="mt-6">
             <p className="mb-1 text-xs text-muted">Max {formatMoney(max)}</p>
-            <div className="flex h-56 items-end gap-1.5 border-b border-border">
+            <div className="flex h-56 items-stretch gap-1.5 border-b border-border">
               {bars.map((b, i) => (
                 <div key={i} className="group flex flex-1 flex-col items-center justify-end">
                   {showLabels && (

@@ -43,15 +43,20 @@ export async function login(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword(parsed.data);
-  if (error) {
+  const { data: signIn, error } = await supabase.auth.signInWithPassword(
+    parsed.data,
+  );
+  if (error || !signIn.user) {
     return { error: "That email or password isn't right. Please try again." };
   }
 
-  // Send the user to the dashboard that matches their role.
+  // Send the user to the dashboard that matches their role. Filter by the
+  // user's own id — an admin can read every profile, so an unfiltered
+  // .single() would fail for them.
   const { data } = await supabase
     .from("profiles")
     .select("role")
+    .eq("id", signIn.user.id)
     .single();
   redirect(roleHome((data?.role as "customer" | "cleaner" | "admin") ?? "customer"));
 }

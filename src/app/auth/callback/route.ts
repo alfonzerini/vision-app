@@ -14,9 +14,13 @@ export async function GET(request: Request) {
 
   if (code) {
     const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) {
-      const { data } = await supabase.from("profiles").select("role").single();
+    const { data: exch, error } = await supabase.auth.exchangeCodeForSession(code);
+    if (!error && exch.user) {
+      const { data } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", exch.user.id)
+        .single();
       const dest = roleHome((data?.role as UserRole) ?? "customer");
       return NextResponse.redirect(`${origin}${dest}`);
     }
