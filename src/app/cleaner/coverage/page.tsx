@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { PaymentNotice } from "@/components/payment-notice";
 import { AvatarUpload } from "@/components/avatar-upload";
+import { DocumentsSection, type DocumentRow } from "@/components/documents-section";
 import { Stars } from "@/components/stars";
 import { metresToMiles } from "@/lib/display";
 import { CoverageForm, type CoverageDefaults } from "./coverage-form";
@@ -35,10 +36,17 @@ export default async function CoveragePage() {
     .order("created_at", { ascending: false })
     .limit(10);
 
+  const { data: docRows } = await supabase
+    .from("documents")
+    .select("id, type, status, expiry_date, file_path")
+    .eq("cleaner_id", user.id)
+    .order("created_at", { ascending: false });
+
   const avgRating = Number(data?.avg_rating ?? 0);
   const ratingCount = data?.rating_count ?? 0;
   const completedJobs = data?.completed_jobs ?? 0;
   const reviews = (reviewRows as { rating: number; body: string | null }[] | null) ?? [];
+  const documents = (docRows as unknown as DocumentRow[]) ?? [];
 
   const defaults: CoverageDefaults = {
     business_name: data?.business_name ?? "",
@@ -110,6 +118,11 @@ export default async function CoveragePage() {
           }
           name={user.full_name}
         />
+      </div>
+
+      <div className="mt-6 max-w-xl rounded-2xl border border-border bg-card p-5">
+        <p className="mb-3 text-sm font-semibold">Verification documents</p>
+        <DocumentsSection cleanerId={user.id} initialDocs={documents} />
       </div>
 
       <div className="mt-6 max-w-xl">
