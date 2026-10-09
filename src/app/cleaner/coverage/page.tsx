@@ -3,6 +3,7 @@ import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { PaymentNotice } from "@/components/payment-notice";
+import { AvatarUpload } from "@/components/avatar-upload";
 import { metresToMiles } from "@/lib/display";
 import { CoverageForm, type CoverageDefaults } from "./coverage-form";
 
@@ -16,6 +17,12 @@ export default async function CoveragePage() {
     .from("cleaner_profiles")
     .select("business_name, description, base_postcode, coverage_radius_m")
     .eq("profile_id", user.id)
+    .single();
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("avatar_url")
+    .eq("id", user.id)
     .single();
 
   const defaults: CoverageDefaults = {
@@ -34,6 +41,17 @@ export default async function CoveragePage() {
         Tell us about your business and where you work, so we can show you the
         right jobs.
       </p>
+
+      <div className="mt-6 max-w-xl rounded-2xl border border-border bg-card p-5">
+        <p className="mb-3 text-sm font-semibold">Profile photo</p>
+        <AvatarUpload
+          userId={user.id}
+          initialUrl={
+            (profile as { avatar_url: string | null } | null)?.avatar_url ?? null
+          }
+          name={user.full_name}
+        />
+      </div>
 
       <div className="mt-6 max-w-xl">
         <PaymentNotice role="cleaner" />

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { PaymentNotice } from "@/components/payment-notice";
 import { JobChat, type ChatMessage } from "@/components/job-chat";
+import { JobReviews } from "@/components/job-reviews";
 import {
   CLEAN_TYPE_LABEL,
   JOB_STATUS,
@@ -254,6 +255,14 @@ export default async function CleanerJobDetail({
           )}
         </section>
       </div>
+
+      {iWon && customerId && job.status === "completed" && (
+        <JobReviews
+          jobId={job.id}
+          currentUserId={user.id}
+          otherPartyName={customerName}
+        />
+      )}
 
       {iWon && customerId && (
         <section className="mt-6 rounded-2xl border border-border bg-card p-6 shadow-sm">

@@ -7,6 +7,8 @@ import { createClient } from "@/lib/supabase/server";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { PaymentNotice } from "@/components/payment-notice";
 import { JobChat, type ChatMessage } from "@/components/job-chat";
+import { JobReviews } from "@/components/job-reviews";
+import { Avatar } from "@/components/avatar";
 import {
   JOB_STATUS,
   QUOTE_STATUS,
@@ -50,6 +52,7 @@ interface QuoteView {
   created_at: string;
   cleaner_id: string;
   business_name: string;
+  avatar_url: string | null;
   avg_rating: number;
   rating_count: number;
   completed_jobs: number;
@@ -278,9 +281,12 @@ export default async function JobDetailPage({
                     }`}
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="font-semibold">{q.business_name}</p>
-                        <Rating avg={q.avg_rating} count={q.rating_count} />
+                      <div className="flex items-start gap-3">
+                        <Avatar url={q.avatar_url} name={q.business_name} size={40} />
+                        <div>
+                          <p className="font-semibold">{q.business_name}</p>
+                          <Rating avg={q.avg_rating} count={q.rating_count} />
+                        </div>
                       </div>
                       <div className="text-right">
                         <p className="text-lg font-bold">
@@ -387,6 +393,14 @@ export default async function JobDetailPage({
             review it and be in touch. Your payment stays on hold in the meantime.
           </p>
         </section>
+      )}
+
+      {job.status === "completed" && job.assigned_cleaner_id && (
+        <JobReviews
+          jobId={job.id}
+          currentUserId={user.id}
+          otherPartyName={cleanerName}
+        />
       )}
 
       {job.assigned_cleaner_id && (

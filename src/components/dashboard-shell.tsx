@@ -3,6 +3,7 @@ import Link from "next/link";
 import { logout } from "@/app/(auth)/actions";
 import { roleHome, type SessionUser } from "@/lib/auth";
 import { BackButton } from "@/components/back-button";
+import { NotificationBell } from "@/components/notification-bell";
 
 const roleLabels: Record<SessionUser["role"], string> = {
   customer: "Customer",
@@ -40,7 +41,8 @@ export function DashboardShell({
             <span className="hidden text-sm text-muted sm:inline">
               {user.full_name ?? user.email}
             </span>
-            <span className="rounded-full bg-brand-light px-3 py-1 text-xs font-semibold text-brand-dark">
+            <NotificationBell userId={user.id} role={user.role} />
+            <span className="hidden rounded-full bg-brand-light px-3 py-1 text-xs font-semibold text-brand-dark sm:inline">
               {roleLabels[user.role]}
             </span>
             <form action={logout}>
