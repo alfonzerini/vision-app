@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { Stars, ReviewForm } from "@/components/review";
+import { Stars } from "@/components/stars";
+import { ReviewForm } from "@/components/review";
 
 interface ReviewRow {
   reviewer_id: string;

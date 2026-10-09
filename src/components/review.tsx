@@ -5,23 +5,6 @@ import { submitReview, type ReviewState } from "@/app/_actions/reviews";
 import { SubmitButton } from "@/components/submit-button";
 import { Field, FormError, TextArea } from "@/components/form";
 
-/** Read-only star display (rating 0–5). */
-export function Stars({
-  rating,
-  className = "",
-}: {
-  rating: number;
-  className?: string;
-}) {
-  const rounded = Math.round(rating);
-  return (
-    <span className={`text-accent ${className}`} aria-label={`${rating} out of 5 stars`}>
-      {"★★★★★".slice(0, rounded)}
-      <span className="text-border">{"★★★★★".slice(rounded)}</span>
-    </span>
-  );
-}
-
 /** Interactive review form with a clickable star rating. */
 export function ReviewForm({
   jobId,
