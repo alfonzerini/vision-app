@@ -32,11 +32,16 @@ changed before real customers use Vision.
 - [ ] Verify RLS policies against a real multi-user test (customer A must not
       see customer B's jobs, cleaner A must not see cleaner B's quotes).
 
-## Payments (when Stripe is added)
+## Payments (Stripe Connect — built 2026-10-11, see STRIPE-SETUP.md)
 
-- [ ] Switch Stripe keys from test mode to live mode.
-- [ ] Verify the Stripe webhook endpoint + signing secret in production.
+- [ ] One-time TEST setup: Stripe account + Connect on, API/webhook keys,
+      service_role key, CRON_SECRET in Vercel, apply migration 0013. (STRIPE-SETUP.md)
+- [ ] Test the full loop in test mode (payout onboarding → pay → complete → release).
+- [ ] Switch Stripe keys from test mode to live mode + complete platform activation.
+- [ ] Recreate the webhook endpoint + signing secret for LIVE, update Vercel.
 - [ ] Confirm commission rate in `platform_settings` is correct (default 15%).
+- [ ] Build admin dispute-resolution UI that calls refundJobPayment() for upheld
+      disputes (code exists; no admin trigger yet — funds stay safely held meanwhile).
 
 ## Legal / UK compliance
 
