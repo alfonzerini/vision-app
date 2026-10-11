@@ -85,6 +85,13 @@ export default async function CleanerDashboard() {
           body="Track payments and payouts"
           tint="bg-slate-100 text-slate-600"
         />
+        <ActionTile
+          href="/cleaner/payouts"
+          emoji="🏦"
+          title="Payouts"
+          body="Connect your bank to get paid"
+          tint="bg-brand-light text-brand-dark"
+        />
       </div>
     </DashboardShell>
   );
