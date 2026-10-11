@@ -22,12 +22,10 @@ changed before real customers use Vision.
 
 ## Data / correctness
 
-- [ ] ⚠️ **RESET THE GPS RADIUS BACK TO 200 METRES.** On 2026-10-07 the
-      `gps_radius_metres` setting was raised from 200 to 100,000,000 (effectively
-      disabling the on-site location check) so Alfie could test job completion
-      while not physically at the test property. This MUST be put back to 200
-      before real use, or cleaners could mark jobs complete from anywhere.
-      Fix (Supabase SQL editor): `update platform_settings set value = '200' where key = 'gps_radius_metres';`
+- [x] ✅ **GPS RADIUS RESET TO 200 METRES (2026-10-11).** It had been raised to
+      100,000,000 on 2026-10-07 to allow off-site completion testing. Reverted via
+      the Supabase SQL editor and verified (`gps_radius_metres = 200`). The on-site
+      location check is active again — cleaners must be within 200m to complete a job.
 - [ ] Create the **first admin user** manually (public signup deliberately
       cannot create admins). Set `role = 'admin'` on that profile in the
       Supabase table editor or via SQL.
