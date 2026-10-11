@@ -59,11 +59,11 @@ export default async function CustomerDashboard() {
           tint="bg-purple-100 text-purple-700"
         />
         <ActionTile
+          href="/customer/properties"
           emoji="🏠"
           title="My properties"
           body="Manage your saved addresses"
           tint="bg-amber-100 text-amber-700"
-          soon
         />
       </div>
     </DashboardShell>

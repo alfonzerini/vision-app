@@ -79,11 +79,11 @@ export default async function CleanerDashboard() {
           tint="bg-amber-100 text-amber-700"
         />
         <ActionTile
+          href="/cleaner/earnings"
           emoji="📈"
           title="Earnings"
           body="Track payments and payouts"
           tint="bg-slate-100 text-slate-600"
-          soon
         />
       </div>
     </DashboardShell>
