@@ -6,6 +6,9 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import { geocodePostcode } from "@/lib/geocode";
+import { getBaseUrl } from "@/lib/base-url";
+import { stripeConfigured } from "@/lib/stripe/env";
+import { createQuoteCheckout, releaseJobPayout } from "@/lib/stripe/payments";
 
 export interface JobFormState {
   error?: string;
@@ -140,22 +143,67 @@ export async function createJob(
 }
 
 /**
- * Customer accepts a cleaner's quote. Delegates to the accept_quote DB function
- * which atomically assigns the cleaner, rejects the other quotes and notifies.
+ * Customer accepts AND pays for a cleaner's quote. We charge the full price via
+ * Stripe Checkout (held in escrow); the cleaner is assigned only once payment
+ * succeeds (handled by the webhook → confirm_job_payment). This replaces the
+ * old instant-accept flow so no job is booked without payment.
  */
-export async function acceptQuote(formData: FormData) {
-  await requireRole("customer");
+export async function payForQuote(formData: FormData) {
+  const user = await requireRole("customer");
   const quoteId = String(formData.get("quote_id") ?? "");
   const jobId = String(formData.get("job_id") ?? "");
 
-  const supabase = await createClient();
-  const { error } = await supabase.rpc("accept_quote", { p_quote_id: quoteId });
+  if (!stripeConfigured) {
+    redirect(`/customer/jobs/${jobId}?error=payments_off`);
+  }
 
-  if (error) {
+  const supabase = await createClient();
+  const { data: quote } = await supabase
+    .from("quotes")
+    .select("id, amount_pence, status, cleaner_id, job_id")
+    .eq("id", quoteId)
+    .maybeSingle();
+  const { data: job } = await supabase
+    .from("jobs")
+    .select("id, customer_id, status")
+    .eq("id", jobId)
+    .maybeSingle();
+
+  if (
+    !quote ||
+    !job ||
+    job.customer_id !== user.id ||
+    job.status !== "open" ||
+    quote.status !== "pending" ||
+    quote.job_id !== jobId
+  ) {
     redirect(`/customer/jobs/${jobId}?error=accept`);
   }
-  revalidatePath(`/customer/jobs/${jobId}`);
-  redirect(`/customer/jobs/${jobId}?accepted=1`);
+
+  const { data: cp } = await supabase
+    .from("cleaner_profiles")
+    .select("business_name")
+    .eq("profile_id", quote.cleaner_id)
+    .maybeSingle();
+
+  const baseUrl = await getBaseUrl();
+
+  let url: string;
+  try {
+    url = await createQuoteCheckout({
+      quoteId,
+      jobId,
+      customerId: user.id,
+      cleanerId: quote.cleaner_id,
+      amountPence: quote.amount_pence,
+      cleanerName: cp?.business_name ?? "your cleaner",
+      customerEmail: user.email ?? undefined,
+      baseUrl,
+    });
+  } catch {
+    redirect(`/customer/jobs/${jobId}?error=payment_start`);
+  }
+  redirect(url);
 }
 
 /** Customer confirms the cleaner's completed work -> job completed. */
@@ -171,6 +219,18 @@ export async function confirmCompletion(formData: FormData) {
   if (error) {
     redirect(`/customer/jobs/${jobId}?error=confirm`);
   }
+
+  // Release the held funds to the cleaner. Best-effort — if it can't run now
+  // (e.g. the cleaner hasn't finished payout setup), the money stays held and
+  // the periodic sweep / account-updated webhook release it later.
+  if (stripeConfigured) {
+    try {
+      await releaseJobPayout(jobId);
+    } catch (err) {
+      console.error("[confirmCompletion] payout release failed:", err);
+    }
+  }
+
   revalidatePath(`/customer/jobs/${jobId}`);
   redirect(`/customer/jobs/${jobId}?confirmed=1`);
 }

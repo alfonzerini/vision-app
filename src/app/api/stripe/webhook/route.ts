@@ -3,6 +3,7 @@ import type Stripe from "stripe";
 import { getStripe } from "@/lib/stripe/server";
 import { stripeConfigured, STRIPE_WEBHOOK_SECRET } from "@/lib/stripe/env";
 import { persistAccountStatus } from "@/lib/stripe/connect";
+import { sweepDuePayouts } from "@/lib/stripe/payments";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // Stripe signature verification needs the Node runtime (raw body + crypto).
@@ -36,7 +37,13 @@ export async function POST(request: Request) {
         break;
       }
       case "account.updated": {
-        await persistAccountStatus(event.data.object as Stripe.Account);
+        const account = event.data.object as Stripe.Account;
+        await persistAccountStatus(account);
+        // A cleaner who just became payable may have funds waiting from jobs
+        // that completed before they finished onboarding — release them now.
+        if (account.payouts_enabled) {
+          await sweepDuePayouts();
+        }
         break;
       }
       default:

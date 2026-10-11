@@ -119,6 +119,37 @@ export async function releaseJobPayout(jobId: string): Promise<ReleaseResult> {
   return "released";
 }
 
+/**
+ * Release every held payment whose job is already completed and whose cleaner
+ * can now be paid. Covers the 48-hour auto-complete path and cleaners who
+ * finished payout onboarding after winning a job. Idempotent. Optionally
+ * limited to one cleaner. Returns how many were released this run.
+ */
+export async function sweepDuePayouts(cleanerId?: string): Promise<number> {
+  const admin = createAdminClient();
+  let query = admin
+    .from("payments")
+    .select("job_id, jobs(status)")
+    .eq("status", "held");
+  if (cleanerId) query = query.eq("cleaner_id", cleanerId);
+
+  const { data } = await query;
+  const rows = (data ?? []) as unknown as {
+    job_id: string;
+    jobs: { status: string } | { status: string }[] | null;
+  }[];
+
+  let released = 0;
+  for (const r of rows) {
+    const job = Array.isArray(r.jobs) ? r.jobs[0] : r.jobs;
+    if (job?.status === "completed") {
+      const res = await releaseJobPayout(r.job_id);
+      if (res === "released") released++;
+    }
+  }
+  return released;
+}
+
 export type RefundResult = "refunded" | "already_refunded" | "no_payment";
 
 /**

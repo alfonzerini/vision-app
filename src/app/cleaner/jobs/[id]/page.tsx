@@ -7,6 +7,10 @@ import { PaymentNotice } from "@/components/payment-notice";
 import { JobChat, type ChatMessage } from "@/components/job-chat";
 import { JobReviews } from "@/components/job-reviews";
 import {
+  PaymentStatusCard,
+  type PayRowStatus,
+} from "@/components/payment-status";
+import {
   CLEAN_TYPE_LABEL,
   JOB_STATUS,
   formatDate,
@@ -116,6 +120,29 @@ export default async function CleanerJobDetail({
       .eq("job_id", id)
       .order("created_at");
     messages = (msgs as ChatMessage[] | null) ?? [];
+  }
+
+  // Payment + payout status for the won job (both readable by the cleaner via RLS).
+  type PaymentView = {
+    amount_pence: number;
+    cleaner_amount_pence: number;
+    status: PayRowStatus;
+  };
+  let payment: PaymentView | null = null;
+  let payoutsReady = true;
+  if (iWon) {
+    const { data: payRow } = await supabase
+      .from("payments")
+      .select("amount_pence, cleaner_amount_pence, status")
+      .eq("job_id", id)
+      .maybeSingle();
+    payment = payRow as PaymentView | null;
+    const { data: acct } = await supabase
+      .from("stripe_accounts")
+      .select("payouts_enabled")
+      .eq("profile_id", user.id)
+      .maybeSingle();
+    payoutsReady = Boolean((acct as { payouts_enabled: boolean } | null)?.payouts_enabled);
   }
 
   // Load any completion photos (private bucket → short-lived signed URLs).
@@ -255,6 +282,16 @@ export default async function CleanerJobDetail({
           )}
         </section>
       </div>
+
+      {iWon && payment && (
+        <PaymentStatusCard
+          role="cleaner"
+          status={payment.status}
+          amountPence={payment.amount_pence}
+          cleanerAmountPence={payment.cleaner_amount_pence}
+          payoutsReady={payoutsReady}
+        />
+      )}
 
       {iWon && customerId && job.status === "completed" && (
         <JobReviews

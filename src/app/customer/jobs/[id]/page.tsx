@@ -10,6 +10,10 @@ import { JobChat, type ChatMessage } from "@/components/job-chat";
 import { JobReviews } from "@/components/job-reviews";
 import { Avatar } from "@/components/avatar";
 import {
+  PaymentStatusCard,
+  type PayRowStatus,
+} from "@/components/payment-status";
+import {
   JOB_STATUS,
   QUOTE_STATUS,
   CLEAN_TYPE_LABEL,
@@ -17,7 +21,8 @@ import {
   formatMoney,
 } from "@/lib/display";
 import type { CleanType, JobStatus, QuoteStatus } from "@/lib/types";
-import { acceptQuote, confirmCompletion } from "../actions";
+import { stripeConfigured } from "@/lib/stripe/env";
+import { payForQuote, confirmCompletion } from "../actions";
 
 export const metadata: Metadata = { title: "Job details" };
 
@@ -85,6 +90,8 @@ export default async function JobDetailPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{
     accepted?: string;
+    paid?: string;
+    canceled?: string;
     error?: string;
     confirmed?: string;
     reported?: string;
@@ -92,7 +99,8 @@ export default async function JobDetailPage({
 }) {
   const user = await requireRole("customer");
   const { id } = await params;
-  const { accepted, error, confirmed, reported } = await searchParams;
+  const { accepted, paid, canceled, error, confirmed, reported } =
+    await searchParams;
   const supabase = await createClient();
 
   const { data } = await supabase
@@ -111,6 +119,18 @@ export default async function JobDetailPage({
     p_job_id: id,
   });
   const quotes = (quotesData as QuoteView[] | null) ?? [];
+
+  // Payment state for this job (readable by the parties via RLS).
+  const { data: paymentRow } = await supabase
+    .from("payments")
+    .select("amount_pence, cleaner_amount_pence, status")
+    .eq("job_id", id)
+    .maybeSingle();
+  const payment = paymentRow as {
+    amount_pence: number;
+    cleaner_amount_pence: number;
+    status: PayRowStatus;
+  } | null;
 
   // Load completion photos once the cleaner has submitted them.
   let photos: { id: string; url: string }[] = [];
@@ -177,15 +197,29 @@ export default async function JobDetailPage({
       </div>
       <p className="mt-1 text-sm text-muted">Posted {formatDate(job.created_at)}</p>
 
-      {accepted && (
+      {(paid || accepted) && (
         <p className="mt-4 rounded-lg bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
-          Quote accepted — your cleaner is booked. We&apos;ve let them know.
+          Payment received — your cleaner is booked and your money is held
+          securely until the job&apos;s done. We&apos;ve let them know.
+        </p>
+      )}
+      {canceled && (
+        <p className="mt-4 rounded-lg bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+          Payment cancelled — no charge was made. You can accept a quote whenever
+          you&apos;re ready.
         </p>
       )}
       {error === "accept" && (
         <p className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
           Sorry, we couldn&apos;t accept that quote — it may no longer be
           available. Please try another.
+        </p>
+      )}
+      {(error === "payments_off" || error === "payment_start") && (
+        <p className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+          {error === "payments_off"
+            ? "Payments aren't switched on just yet — please try again soon."
+            : "We couldn't start the payment. Please try again."}
         </p>
       )}
       {confirmed && (
@@ -208,6 +242,15 @@ export default async function JobDetailPage({
         <div className="mt-6">
           <PaymentNotice role="customer" />
         </div>
+      )}
+
+      {payment && (
+        <PaymentStatusCard
+          role="customer"
+          status={payment.status}
+          amountPence={payment.amount_pence}
+          cleanerAmountPence={payment.cleaner_amount_pence}
+        />
       )}
 
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
@@ -305,16 +348,25 @@ export default async function JobDetailPage({
                       <p className="mt-2 text-sm text-muted">{q.message}</p>
                     )}
                     {job.status === "open" && q.status === "pending" && (
-                      <form action={acceptQuote} className="mt-3">
-                        <input type="hidden" name="quote_id" value={q.quote_id} />
-                        <input type="hidden" name="job_id" value={job.id} />
-                        <button
-                          type="submit"
-                          className="w-full rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-dark"
-                        >
-                          Accept this quote
-                        </button>
-                      </form>
+                      stripeConfigured ? (
+                        <form action={payForQuote} className="mt-3">
+                          <input type="hidden" name="quote_id" value={q.quote_id} />
+                          <input type="hidden" name="job_id" value={job.id} />
+                          <button
+                            type="submit"
+                            className="w-full rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-dark"
+                          >
+                            Accept &amp; pay {formatMoney(q.amount_pence)}
+                          </button>
+                          <p className="mt-1.5 text-center text-xs text-muted">
+                            Held securely — released when the job&apos;s done.
+                          </p>
+                        </form>
+                      ) : (
+                        <p className="mt-3 rounded-xl border border-dashed border-border px-4 py-2.5 text-center text-xs text-muted">
+                          Secure payments are launching soon.
+                        </p>
+                      )
                     )}
                   </li>
                 );
